@@ -62,7 +62,7 @@ class contestClassifier(classificationMethod.ClassificationMethod):
                 numIncorrect = 0
                 # get hold machine's guesses for hidden and outer layer
                 outerScoreDict = util.Counter()
-                hiddenScoreDict = util.Counter()
+                hiddenScoreDict = util.Counter() # type: util.Counter()
 
                 # parse through the first "numDatums" of the training data
                 for i in range(numDatums):
@@ -82,6 +82,75 @@ class contestClassifier(classificationMethod.ClassificationMethod):
 
                     # machine's guess is 0
                     if outerScoreDict.argMax() == 0:
+                        # if machine's guess doesn't match with actual label...update hidden and outer
+                        # weights/biases
+                        while outerScoreDict.argMax() != trainingLabels[i]:
+                            # corresponding hidden neuron with 0
+                            while hiddenScoreDict.argMax() != self.hiddenLabels[0]:
+
+                                # increase the actual bias and weight 1
+                                self.hiddenBias[0] = self.hiddenBias[0] + 1
+                                self.hiddenWeights[0] = self.hiddenWeights[0] + trainingData[i]
+
+                                # decrease the machine's guesses
+                                self.hiddenBias[hiddenScoreDict.argMax()] = self.hiddenBias[hiddenScoreDict.argMax()]-1
+                                self.hiddenWeights[hiddenScoreDict.argMax()] = \
+                                  self.hiddenWeights[hiddenScoreDict.argMax()] + trainingData[i]
+
+                                hiddenScoreDict[0] = trainingData[i] * self.hiddenWeights[0] + \
+                                                               self.hiddenBias[0]
+                                hiddenScoreDict[hiddenScoreDict.argMax()] = trainingData[i] * self.hiddenWeights[
+                                                  hiddenScoreDict.argMax()] + self.hiddenBias[hiddenScoreDict.argMax()]
+
+                            self.outerBias[0] = self.outerBias[0] + 1
+                            self.outerWeights[0] = self.outerWeights[0] + hiddenScoreDict
+                            outerScoreDict[0] = outerScoreDict[0] * self.outerWeights[0] + self.outerBias[0]
+
+                            self.outerBias[outerScoreDict.argMax()] = self.outerBias[outerScoreDict.argMax()] - 1
+                            self.outerWeights[outerScoreDict.argMax()] = self.outerWeights[
+                                                                             outerScoreDict.argMax()] - hiddenScoreDict
+                            outerScoreDict[outerScoreDict.argMax()] = hiddenScoreDict * \
+                                    self.outerWeights[outerScoreDict.argMax()] + self.outerBias[outerScoreDict.argMax()]
+                    # machine's guess is 1
+                    if outerScoreDict.argMax() == 1:
+                        # if machine's guess (denoted as outerScoreDict.argMax()) doesn't match with actual label, then update hidden and outer
+                        # weights/biases
+                        while outerScoreDict.argMax() != trainingLabels[i]:
+                            # corresponding hidden neuron with 0
+
+                            # while the 3 hiddenLabels that define "1" are not the top three of hiddenScoreDict
+                            while self.hiddenLabels[1] and self.hiddenLabels[2] and self.hiddenLabels[3] not in hiddenScoreDict.sortedKeys()[0:3]:
+
+                                # increase the actual bias and weight 1
+                                self.hiddenBias[1] = self.hiddenBias[1] + 1
+                                self.hiddenWeights[1] = self.hiddenWeights[1] + trainingData[i]
+                                hiddenScoreDict[1] = trainingData[i] * self.hiddenWeights[1] + self.hiddenBias[1]
+
+                                self.hiddenBias[2] = self.hiddenBias[2] + 1
+                                self.hiddenWeights[2] = self.hiddenWeights[2] + trainingData[i]
+                                hiddenScoreDict[2] = trainingData[2] * self.hiddenWeights[2] + self.hiddenBias[1]
+
+                                self.hiddenBias[3] = self.hiddenBias[3] + 1
+                                self.hiddenWeights[3] = self.hiddenWeights[3] + trainingData[i]
+                                hiddenScoreDict[3] = trainingData[3] * self.hiddenWeights[3] + self.hiddenBias[1]
+
+                                # decrease the machine's guesses
+                                guess = hiddenScoreDict.argMax()
+                                self.hiddenBias[guess] = self.hiddenBias[guess] - 1
+                                self.hiddenWeights[guess] = self.hiddenWeights[guess] + trainingData[i]
+
+
+                                hiddenScoreDict[guess] = trainingData[i] * self.hiddenWeights[guess] + \
+                                                                        self.hiddenBias[guess]
+
+                            self.outerBias[0] = self.outerBias[0] + 1
+                            self.outerWeights[0] = self.outerWeights[0] + hiddenScoreDict
+
+                            self.outerBias[outerScoreDict.argMax()] = self.outerBias[outerScoreDict.argMax()] - 1
+                            self.outerWeights[outerScoreDict.argMax()] = self.outerWeights[
+                                                                             outerScoreDict.argMax()] - hiddenScoreDict
+                    # machine's guess is 2
+                    if outerScoreDict.argMax() == 2:
                         # if machine's guess doesn't match with actual label...update hidden and outer
                         # weights/biases
                         while outerScoreDict.argMax() != trainingLabels[i]:
@@ -119,49 +188,9 @@ class contestClassifier(classificationMethod.ClassificationMethod):
                             self.outerWeights[0] = self.outerWeights[0] + hiddenScoreDict
 
                             self.outerBias[outerScoreDict.argMax()] = self.outerBias[outerScoreDict.argMax()] - 1
-                            self.outerWeights[outerScoreDict.argMax()] = self.outerWeights[outerScoreDict.argMax()] - hiddenScoreDict
+                            self.outerWeights[outerScoreDict.argMax()] = self.outerWeights[
+                                                                             outerScoreDict.argMax()] - hiddenScoreDict
 
-                    # machine's guess is 1
-                    if outerScoreDict.argMax() == 1:
-                      # if machine's guess doesn't match with actual label...update hidden and outer
-                      # weights/biases
-                      while outerScoreDict.argMax() != trainingLabels[i]:
-                        # corresponding hidden neuron with 0
-                        while hiddenScoreDict.argMax() != self.hiddenLabels[0]:
-
-                          hiddenLabelBestGuess = hiddenScoreDict.argMax()
-                          # fix the hidden weights and biases
-                          while hiddenLabel != hiddenLabelBestGuess:
-                            # increase the actual bias and weight 1
-                            self.hiddenBias[hiddenLabel] = self.hiddenBias[hiddenLabel] + 1
-                            self.hiddenWeights[hiddenLabel] = self.hiddenWeights[hiddenLabel] + \
-                                                              trainingData[i]
-
-                            # decrease the machine's guesses
-                            self.hiddenBias[hiddenLabelBestGuess] = self.hiddenBias[
-                                                                      hiddenLabelBestGuess] - 1
-                            self.hiddenWeights[hiddenLabelBestGuess] = self.hiddenWeights[
-                                                                         hiddenLabelBestGuess] + \
-                                                                       trainingData[
-                                                                         i]
-
-                            hiddenScoreDict[hiddenLabel] = trainingData[i] * self.hiddenWeights[
-                              hiddenLabel] + \
-                                                           self.hiddenBias[hiddenLabel]
-                            hiddenScoreDict[hiddenLabelBestGuess] = trainingData[i] * \
-                                                                    self.hiddenWeights[
-                                                                      hiddenLabelBestGuess] + \
-                                                                    self.hiddenBias[hiddenLabelBestGuess]
-
-                            hiddenLabelBestGuess = hiddenScoreDict.argMax()
-                            hiddenNumIncorrect += 1
-                            # ehhh right on first try, go on next datum
-                        self.outerBias[0] = self.outerBias[0] + 1
-                        self.outerWeights[0] = self.outerWeights[0] + hiddenScoreDict
-
-                        self.outerBias[outerScoreDict.argMax()] = self.outerBias[outerScoreDict.argMax()] - 1
-                        self.outerWeights[outerScoreDict.argMax()] = self.outerWeights[
-                                                                       outerScoreDict.argMax()] - hiddenScoreDict
     def classify(self, testData):
         """
     Please describe how data is classified here.
